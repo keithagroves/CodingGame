@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports["default"] = void 0;
 
 var _lanceGg = require("lance-gg");
 
@@ -34,21 +34,26 @@ function _setPrototypeOf(o, p) { _setPrototypeOf = Object.setPrototypeOf || func
 // GAME OBJECTS
 //
 // /////////////////////////////////////////////////////////
-var YourGameObject =
+var WIDTH = 700;
+var HEIGHT = 500;
+
+var Unit =
 /*#__PURE__*/
 function (_DynamicObject) {
-  _inherits(YourGameObject, _DynamicObject);
+  _inherits(Unit, _DynamicObject);
 
-  function YourGameObject(gameEngine, options, props) {
-    _classCallCheck(this, YourGameObject);
+  function Unit(gameEngine, options, props) {
+    _classCallCheck(this, Unit);
 
-    return _possibleConstructorReturn(this, _getPrototypeOf(YourGameObject).call(this, gameEngine, options, props));
+    return _possibleConstructorReturn(this, _getPrototypeOf(Unit).call(this, gameEngine, options, props));
   }
 
-  _createClass(YourGameObject, [{
+  _createClass(Unit, [{
     key: "syncTo",
     value: function syncTo(other) {
-      _get(_getPrototypeOf(YourGameObject.prototype), "syncTo", this).call(this, other);
+      _get(_getPrototypeOf(Unit.prototype), "syncTo", this).call(this, other);
+
+      this.health = other.health;
     }
   }], [{
     key: "netScheme",
@@ -57,11 +62,37 @@ function (_DynamicObject) {
         health: {
           type: _lanceGg.BaseTypes.TYPES.INT16
         }
-      }, _get(_getPrototypeOf(YourGameObject), "netScheme", this));
+      }, _get(_getPrototypeOf(Unit), "netScheme", this));
     }
   }]);
 
-  return YourGameObject;
+  return Unit;
+}(_lanceGg.DynamicObject);
+
+var Ping =
+/*#__PURE__*/
+function (_DynamicObject2) {
+  _inherits(Ping, _DynamicObject2);
+
+  function Ping(gameEngine, options, props) {
+    _classCallCheck(this, Ping);
+
+    return _possibleConstructorReturn(this, _getPrototypeOf(Ping).call(this, gameEngine, options, props));
+  }
+
+  _createClass(Ping, [{
+    key: "syncTo",
+    value: function syncTo(other) {
+      _get(_getPrototypeOf(Ping.prototype), "syncTo", this).call(this, other);
+    }
+  }], [{
+    key: "netScheme",
+    get: function get() {
+      return _get(_getPrototypeOf(Ping), "netScheme", this);
+    }
+  }]);
+
+  return Ping;
 }(_lanceGg.DynamicObject); // /////////////////////////////////////////////////////////
 //
 // GAME ENGINE
@@ -104,14 +135,26 @@ function (_GameEngine) {
   _createClass(Game, [{
     key: "registerClasses",
     value: function registerClasses(serializer) {
-      serializer.registerClass(YourGameObject);
+      serializer.registerClass(Unit);
+      serializer.registerClass(Ping);
     }
   }, {
     key: "gameLogic",
-    value: function gameLogic() {}
+    value: function gameLogic() {
+      var units = this.world.queryObjects({
+        instanceType: Unit
+      });
+      var pings = this.world.queryObjects({
+        instanceType: Ping
+      });
+    }
   }, {
     key: "processInput",
     value: function processInput(inputData, playerId) {
+      if (inputData === "mousemove") {
+        console.log("click at " + inputData.options.x + " " + inputData.options.y);
+      }
+
       _get(_getPrototypeOf(Game.prototype), "processInput", this).call(this, inputData, playerId);
     } // /////////////////////////////////////////////////////////
     //
@@ -121,13 +164,24 @@ function (_GameEngine) {
 
   }, {
     key: "serverSideInit",
-    value: function serverSideInit() {}
+    value: function serverSideInit() {
+      this.addObjectToWorld(new Unit(this, null, {
+        position: new _lanceGg.TwoVector(100, 100)
+      }));
+    }
   }, {
     key: "serverSidePlayerJoined",
-    value: function serverSidePlayerJoined(ev) {}
+    value: function serverSidePlayerJoined(ev) {
+      var units = this.world.queryObjects({
+        instanceType: Unit
+      });
+      units[0].playerId = ev.playerId;
+    }
   }, {
     key: "serverSidePlayerDisconnected",
-    value: function serverSidePlayerDisconnected(ev) {} // /////////////////////////////////////////////////////////
+    value: function serverSidePlayerDisconnected(ev) {
+      units[0].playerId = 0;
+    } // /////////////////////////////////////////////////////////
     //
     // CLIENT ONLY CODE
     //
@@ -135,14 +189,29 @@ function (_GameEngine) {
 
   }, {
     key: "clientSideInit",
-    value: function clientSideInit() {}
+    value: function clientSideInit() {
+      var _this2 = this;
+
+      this.controls = new _lanceGg.KeyboardControls(this.renderer.clientEngine);
+      document.addEventListener('mousemove', function (e) {
+        _this2.sendInput('mousePos', {
+          x: e.clientX,
+          y: e.clientY
+        });
+      });
+    }
   }, {
     key: "clientSideDraw",
-    value: function clientSideDraw() {}
+    value: function clientSideDraw() {
+      var units = this.world.queryObjects({
+        instanceType: Unit
+      });
+      updateEl(document.querySelector('.unit1'), units[0]);
+    }
   }]);
 
   return Game;
 }(_lanceGg.GameEngine);
 
-exports.default = Game;
+exports["default"] = Game;
 //# sourceMappingURL=Game.js.map
